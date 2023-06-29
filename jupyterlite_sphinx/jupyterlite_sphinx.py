@@ -1,4 +1,5 @@
 import os
+import nbformat as nbf
 from uuid import uuid4
 import shutil
 import tempfile
@@ -18,6 +19,8 @@ from sphinx.application import Sphinx
 from sphinx.util.docutils import SphinxDirective
 from sphinx.util.fileutil import copy_asset
 from sphinx.parsers import RSTParser
+
+from .generate_notebook import generate_notebook
 
 HERE = Path(__file__).parent
 
@@ -257,6 +260,55 @@ class RetroLiteDirective(_LiteDirective):
     iframe_cls = RetroLiteIframe
 
 
+class LiteExamplesDirective(SphinxDirective):
+    """The ``.. examples::`` directive.
+
+    """
+    has_content = True
+
+    required_arguments = 0
+    option_spec = {
+        "width": directives.unchanged,
+        "height": directives.unchanged,
+        "kernel": directives.unchanged,
+        "toolbar": directives.unchanged,
+        "theme": directives.unchanged,
+        "prompt": directives.unchanged,
+        "prompt_color": directives.unchanged,
+    }
+
+    def run(self):
+        width = self.options.pop("width", "100%")
+        height = self.options.pop("height", "1000px")
+        prompt = self.options.pop("prompt", False)
+        prompt_color = self.options.pop("prompt_color", None)
+
+        prefix = os.path.join("..", JUPYTERLITE_DIR)
+
+        nb = generate_notebook(self.content)
+        self.content = None
+        notebooks_dir = Path(self.env.app.srcdir) / CONTENT_DIR
+
+        notebook = f"{uuid4()}.ipynb".replace("-", "_")
+
+        # Copy the Notebook for RetroLite to find
+        os.makedirs(notebooks_dir, exist_ok=True)
+        with open(notebooks_dir / Path(notebook), "w") as f:
+            nbf.write(nb, f)
+ 
+        return [
+            RetroLiteIframe(
+                prefix=prefix,
+                width=width,
+                height=height,
+                prompt=prompt,
+                prompt_color=prompt_color,
+                notebook=notebook,
+                lite_options=self.options,
+            )
+        ]
+
+
 class RetroLiteParser(RSTParser):
     """Sphinx source parser for Jupyter notebooks.
 
@@ -388,6 +440,9 @@ def setup(app):
         man=(skip, None),
     )
     app.add_directive("replite", RepliteDirective)
+
+    # Initialize LiteExamples directive
+    app.add_directive("lite_examples", LiteExamplesDirective)
 
     # CSS and JS assets
     copy_asset(str(HERE / "jupyterlite_sphinx.css"), str(Path(app.outdir) / "_static"))
