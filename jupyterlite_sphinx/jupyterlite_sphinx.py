@@ -282,8 +282,9 @@ class LiteExamplesDirective(SphinxDirective):
         height = self.options.pop("height", "1000px")
         prompt = self.options.pop("prompt", False)
         prompt_color = self.options.pop("prompt_color", None)
-
         prefix = os.path.join("..", JUPYTERLITE_DIR)
+        lite_app = "retro/"
+        notebooks_path = "notebooks/"
 
         nb = generate_notebook(self.content)
         self.content = None
@@ -295,19 +296,46 @@ class LiteExamplesDirective(SphinxDirective):
         os.makedirs(notebooks_dir, exist_ok=True)
         with open(notebooks_dir / Path(notebook), "w") as f:
             nbf.write(nb, f)
- 
-        return [
-            RetroLiteIframe(
-                prefix=prefix,
-                width=width,
-                height=height,
-                prompt=prompt,
-                prompt_color=prompt_color,
-                notebook=notebook,
-                lite_options=self.options,
-            )
-        ]
 
+        # Instantiate doctest directive so we can get it's html output
+        doctest = DoctestDirective(
+            self.name,
+            self.arguments,
+            self.options,
+            self.content,
+            self.lineno,
+            self.content_offset,
+            self.block_text,
+            self.state,
+            self.state_machine,
+        )
+        example_node = doctest.run()[0]
+
+        app_path = f"{lite_app}{notebooks_path}"
+        options = "&".join(
+            [f"{key}={quote(value)}" for key, value in self.options.items()]
+        )
+
+
+        iframe_src = f'{prefix}/{app_path}{f"?{options}" if options else ""}'
+
+        placeholder_id = uuid4()
+
+        container_style = f'width: {width}; height: {height};'
+        # Start the container with raw HTML
+        start_div = (
+            f"<div class=\"try_example_iframe_container\""
+            f"style=\"{container_style}\" id=\"{placeholder_id}\""
+            f" onclick=\"window.tryExamplesShowIframe('{placeholder_id}','"
+            f"{iframe_src}')\">"
+        )
+        start_container = nodes.raw('', start_div, format='html')
+        # End the container with raw HTML
+        end_div = "</div>"
+        end_container = nodes.raw('', end_div, format='html')
+        # Return the start container, example node, and end container in sequence
+        return [start_container, example_node, end_container]
+ 
 
 class RetroLiteParser(RSTParser):
     """Sphinx source parser for Jupyter notebooks.
