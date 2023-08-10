@@ -5,7 +5,7 @@ window.jupyterliteShowIframe = (tryItButtonId, iframeSrc) => {
   iframe.src = iframeSrc;
   iframe.width = iframe.height = '100%';
   iframe.classList.add('jupyterlite_sphinx_iframe');
-
+ifra
   tryItButton.parentNode.appendChild(iframe);
   tryItButton.innerText = 'Loading ...';
   tryItButton.classList.remove('jupyterlite_sphinx_try_it_button_unclicked');
@@ -18,13 +18,7 @@ window.tryExamplesShowIframe = (containerId, iframeSrc) => {
 
     iframe.src = iframeSrc;
     iframe.width = iframe.height = '100%';
-    iframe.classList.add('jupyterlite_sphinx_iframe');
-
-    // Optionally, you could create a loading message element here
-    const loadingMessage = document.createElement('div');
-    loadingMessage.innerText = 'Loading ...';
-    loadingMessage.classList.add('loading-message');
-    container.appendChild(loadingMessage);
-    
-    container.appendChild(iframe); // Appends the iframe to the container
+    iframe.classList.add('jupyterlite_sphinx_raw_iframe');
+    container.classList.add("hidden")
+    container.parentNode.appendChild(iframe); // Appends the iframe to the container
 }

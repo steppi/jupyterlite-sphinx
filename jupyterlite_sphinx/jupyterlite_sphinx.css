@@ -50,6 +50,11 @@
     transform: translateY(-50%) translateX(-50%) scale(1.2);
 }
 
+
+.hidden {
+    display: none;
+}
+
 @keyframes grow {
     from {
         transform: translateY(-50%) translateX(-50%) scale(1);
@@ -67,3 +72,5 @@
         transform: translateY(-50%) translateX(-50%) scale(1.2);
     }
 }
+
+

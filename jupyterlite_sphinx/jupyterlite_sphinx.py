@@ -13,9 +13,11 @@ from urllib.parse import quote
 import subprocess
 
 from docutils.parsers.rst import directives
+from docutils import nodes
 from docutils.nodes import SkipNode, Element
 
 from sphinx.application import Sphinx
+from sphinx.ext.doctest import DoctestDirective
 from sphinx.util.docutils import SphinxDirective
 from sphinx.util.fileutil import copy_asset
 from sphinx.parsers import RSTParser
@@ -285,18 +287,7 @@ class LiteExamplesDirective(SphinxDirective):
         prefix = os.path.join("..", JUPYTERLITE_DIR)
         lite_app = "retro/"
         notebooks_path = "notebooks/"
-
-        nb = generate_notebook(self.content)
-        self.content = None
-        notebooks_dir = Path(self.env.app.srcdir) / CONTENT_DIR
-
-        notebook = f"{uuid4()}.ipynb".replace("-", "_")
-
-        # Copy the Notebook for RetroLite to find
-        os.makedirs(notebooks_dir, exist_ok=True)
-        with open(notebooks_dir / Path(notebook), "w") as f:
-            nbf.write(nb, f)
-
+    
         # Instantiate doctest directive so we can get it's html output
         doctest = DoctestDirective(
             self.name,
@@ -311,6 +302,18 @@ class LiteExamplesDirective(SphinxDirective):
         )
         example_node = doctest.run()[0]
 
+        nb = generate_notebook(self.content)
+        self.content = None
+        notebooks_dir = Path(self.env.app.srcdir) / CONTENT_DIR
+
+        notebook = f"{uuid4()}.ipynb".replace("-", "_")
+        self.options["path"] = notebook
+
+        # Copy the Notebook for RetroLite to find
+        os.makedirs(notebooks_dir, exist_ok=True)
+        with open(notebooks_dir / Path(notebook), "w") as f:
+            nbf.write(nb, f)
+
         app_path = f"{lite_app}{notebooks_path}"
         options = "&".join(
             [f"{key}={quote(value)}" for key, value in self.options.items()]
@@ -319,22 +322,38 @@ class LiteExamplesDirective(SphinxDirective):
 
         iframe_src = f'{prefix}/{app_path}{f"?{options}" if options else ""}'
 
+        container_style = f'width: {width}; height: {height};'
         placeholder_id = uuid4()
 
-        container_style = f'width: {width}; height: {height};'
-        # Start the container with raw HTML
-        start_div = (
-            f"<div class=\"try_example_iframe_container\""
-            f"style=\"{container_style}\" id=\"{placeholder_id}\""
+        # Start the outer container with raw HTML
+        start_outer_div = (
+            f"<div class=\"jupyterlite_sphinx_iframe_container\""
+            f"style=\"{container_style}\""
             f" onclick=\"window.tryExamplesShowIframe('{placeholder_id}','"
             f"{iframe_src}')\">"
         )
-        start_container = nodes.raw('', start_div, format='html')
-        # End the container with raw HTML
-        end_div = "</div>"
-        end_container = nodes.raw('', end_div, format='html')
-        # Return the start container, example node, and end container in sequence
-        return [start_container, example_node, end_container]
+        start_outer_container = nodes.raw('', start_outer_div, format='html')
+
+        # Start the inner container with raw HTML, using placeholder_id as the id
+        start_inner_div = f"<div id=\"{placeholder_id}\" class=\"examples_container\">"
+        start_inner_container = nodes.raw('', start_inner_div, format='html')
+
+        # End the inner container with raw HTML
+        end_inner_div = "</div>"
+        end_inner_container = nodes.raw('', end_inner_div, format='html')
+
+        # End the outer container with raw HTML
+        end_outer_div = "</div>"
+        end_outer_container = nodes.raw('', end_outer_div, format='html')
+
+        # Return the sequence of containers and the example node
+        return [
+            start_outer_container,
+            start_inner_container,
+            example_node,
+            end_inner_container,
+            end_outer_container
+        ]
  
 
 class RetroLiteParser(RSTParser):
