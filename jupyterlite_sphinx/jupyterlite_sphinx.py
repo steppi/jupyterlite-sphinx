@@ -323,37 +323,43 @@ class LiteExamplesDirective(SphinxDirective):
         iframe_src = f'{prefix}/{app_path}{f"?{options}" if options else ""}'
 
         container_style = f'width: {width}; height: {height};'
-        placeholder_id = uuid4()
+        examples_div_id = uuid4()
+        iframe_div_id = uuid4()
+
+        outer_container = nodes.container()
 
         # Start the outer container with raw HTML
-        start_outer_div = (
-            f"<div class=\"jupyterlite_sphinx_iframe_container\""
-            f"style=\"{container_style}\""
-            f" onclick=\"window.tryExamplesShowIframe('{placeholder_id}','"
-            f"{iframe_src}')\">"
+        examples_container_div = (
+            f"<div class=\"examples_container\" id=\"{examples_div_id}\">"
         )
-        start_outer_container = nodes.raw('', start_outer_div, format='html')
+        start_examples_container = nodes.raw('', examples_container_div, format='html')
+        outer_container += start_examples_container
 
-        # Start the inner container with raw HTML, using placeholder_id as the id
-        start_inner_div = f"<div id=\"{placeholder_id}\" class=\"examples_container\">"
-        start_inner_container = nodes.raw('', start_inner_div, format='html')
+        # Button with the onclick event
+        button_html = (
+            f"<button onclick=\"window.liteExamplesShowIframe('{examples_div_id}',"
+            f"'{iframe_div_id}','{iframe_src}')\">"
+            "Try it!</button>"
+        )
+        button_node = nodes.raw('', button_html, format='html')
+        outer_container += example_node
+        outer_container += button_node
 
-        # End the inner container with raw HTML
-        end_inner_div = "</div>"
-        end_inner_container = nodes.raw('', end_inner_div, format='html')
+        # End the examples container
+        end_examples_container = nodes.raw('', "</div>", format='html')
+        outer_container += end_examples_container
 
-        # End the outer container with raw HTML
-        end_outer_div = "</div>"
-        end_outer_container = nodes.raw('', end_outer_div, format='html')
+        # Iframe container (initially hidden)
+        iframe_container_div = (
+            f"<div id=\"{iframe_div_id}\" "
+            f"class=\"jupyterlite_sphinx_iframe_container hidden\" "
+            f"style=\"{container_style}\"></div>"
+        )
+        iframe_container = nodes.raw('', iframe_container_div, format='html')
+        outer_container += iframe_container
 
-        # Return the sequence of containers and the example node
-        return [
-            start_outer_container,
-            start_inner_container,
-            example_node,
-            end_inner_container,
-            end_outer_container
-        ]
+        # Return the outer container node
+        return [outer_container]
  
 
 class RetroLiteParser(RSTParser):

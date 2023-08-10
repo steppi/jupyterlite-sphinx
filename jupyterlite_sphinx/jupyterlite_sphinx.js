@@ -12,13 +12,15 @@ ifra
   tryItButton.classList.add('jupyterlite_sphinx_try_it_button_clicked');
 }
 
-window.tryExamplesShowIframe = (containerId, iframeSrc) => {
-    const container = document.getElementById(containerId);
+window.liteExamplesShowIframe = (examplesContainerId, iframeContainerId, iframeSrc) => {
+    const examples_container = document.getElementById(examplesContainerId)
+    const iframe_container = document.getElementById(iframeContainerId);
     const iframe = document.createElement('iframe');
 
     iframe.src = iframeSrc;
     iframe.width = iframe.height = '100%';
     iframe.classList.add('jupyterlite_sphinx_raw_iframe');
-    container.classList.add("hidden")
-    container.parentNode.appendChild(iframe); // Appends the iframe to the container
+    examples_container.classList.add("hidden")
+    iframe_container.appendChild(iframe);
+    iframe_container.classList.remove("hidden")
 }
